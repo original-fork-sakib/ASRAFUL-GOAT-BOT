@@ -21,7 +21,7 @@ module.exports = {
       // ⏳ STEP 1: LOADING MESSAGE
       loading = await api.sendMessage(
 `💠✨ 𝐊𝐈𝐍𝐆 𝐎𝐅 𝐒𝐀𝐊𝐈𝐁 𝐈𝐍𝐅𝐎 𝐋𝐎𝐀𝐃𝐈𝐍𝐆... ✨💠
-⏳ 𝐏𝐋𝐄𝐀𝐒𝐄 𝐖𝐀𝐈𝐓 👑🔥`,
+⏳🎀 𝐏𝐋𝐄𝐀𝐒𝐄 𝐖𝐀𝐈𝐓 👑🔥`,
         event.threadID
       );
 
