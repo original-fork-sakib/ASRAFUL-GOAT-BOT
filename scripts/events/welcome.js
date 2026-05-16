@@ -11,7 +11,7 @@ module.exports = {
 
 	config: {
 		name: "welcome",
-		version: "6.0",
+		version: "7.0",
 		author: "MR_FARHAN",
 		category: "events",
 		eventType: ["log:subscribe"]
@@ -21,8 +21,9 @@ module.exports = {
 
 		if (event.logMessageType !== "log:subscribe") return;
 
+		// ================= LOADING =================
 		const loading = await api.sendMessage(
-			"⏳ Loading Welcome...",
+			"⏳ Loading Welcome Card...",
 			event.threadID
 		);
 
@@ -39,15 +40,15 @@ module.exports = {
 			const threadInfo = await threadsData.get(event.threadID);
 
 			if (!threadInfo) {
-				return api.sendMessage("Thread error!", event.threadID);
+				return api.sendMessage("❌ Thread info error!", event.threadID);
 			}
 
 			const threadName = threadInfo.threadName || "Group";
 
-			// ✅ FIXED MEMBER COUNT (REAL FB LOGIC)
+			// ✅ FIXED MEMBER COUNT
 			const memberCount =
-				event.logMessageData?.addedParticipants?.length ||
-				(threadInfo.participantIDs ? threadInfo.participantIDs.length : 1);
+				threadInfo.participantIDs?.length ||
+				(event.logMessageData?.addedParticipants?.length || 1);
 
 			const userName = addedUser.fullName;
 
@@ -60,14 +61,12 @@ module.exports = {
 				"https://i.imgur.com/7Qk8k6c.png";
 
 			// ================= VIDEO BACKGROUND =================
-
 			const videos = [
 				"https://files.catbox.moe/ypk6ji.mp4",
 				"https://files.catbox.moe/94k8sw.mp4"
 			];
 
-			const randomVideo =
-				videos[Math.floor(Math.random() * videos.length)];
+			const randomVideo = videos[Math.floor(Math.random() * videos.length)];
 
 			const videoPath = path.join(tempDir, `v_${Date.now()}.mp4`);
 			const framePath = path.join(tempDir, `f_${Date.now()}.jpg`);
@@ -75,6 +74,7 @@ module.exports = {
 			// download video
 			const res = await axios({ url: randomVideo, responseType: "stream" });
 			const writer = fs.createWriteStream(videoPath);
+
 			res.data.pipe(writer);
 
 			await new Promise((resolve, reject) => {
@@ -103,36 +103,37 @@ module.exports = {
 				bg = await loadImage(Buffer.from(imgRes.data));
 			}
 
+			// ================= CANVAS =================
 			const canvas = createCanvas(1200, 700);
 			const ctx = canvas.getContext("2d");
 
 			ctx.drawImage(bg, 0, 0, 1200, 700);
-			ctx.fillStyle = "rgba(0,0,0,0.4)";
+			ctx.fillStyle = "rgba(0,0,0,0.45)";
 			ctx.fillRect(0, 0, 1200, 700);
 
-			// avatar function
-			async function drawCircle(url, x, y, size, color) {
-
+			// ================= AVATAR =================
+			async function circle(url, x, y, size) {
 				try {
-					const r = await axios.get(url, { responseType: "arraybuffer" });
-					const img = await loadImage(Buffer.from(r.data));
+					const res = await axios.get(url, { responseType: "arraybuffer" });
+					const img = await loadImage(Buffer.from(res.data));
 
-					const radius = size / 2;
+					const r = size / 2;
 
 					ctx.beginPath();
-					ctx.arc(x, y, radius, 0, Math.PI * 2);
+					ctx.arc(x, y, r, 0, Math.PI * 2);
 					ctx.clip();
 
-					ctx.drawImage(img, x - radius, y - radius, size, size);
+					ctx.drawImage(img, x - r, y - r, size, size);
 
+					ctx.restore?.();
 				} catch {}
 			}
 
-			await drawCircle(groupImage, 600, 180, 200);
-			await drawCircle(userAvatar, 120, 600, 150);
-			await drawCircle(adderAvatar, 1080, 100, 150);
+			await circle(groupImage, 600, 180, 200);
+			await circle(userAvatar, 120, 600, 150);
+			await circle(adderAvatar, 1080, 100, 150);
 
-			// TEXT
+			// ================= TEXT =================
 			ctx.textAlign = "center";
 
 			ctx.font = "bold 40px Arial";
@@ -156,16 +157,20 @@ module.exports = {
 			ctx.fillStyle = "#fff";
 			ctx.fillText(`Member #${memberCount}`, 600, 600);
 
+			// ================= SAVE =================
 			const output = path.join(tempDir, `welcome_${Date.now()}.png`);
 			fs.writeFileSync(output, canvas.toBuffer());
 
+			// ================= SEND =================
 			api.sendMessage({
 
 				body: `🌸 WELCOME 🌸
+━━━━━━━━━━━━━━
 👤 ${userName}
 🏷️ ${threadName}
 🔢 Member #${memberCount}
-👑 Added by ${adderName}`,
+👑 Added by ${adderName}
+━━━━━━━━━━━━━━`,
 
 				attachment: fs.createReadStream(output)
 
@@ -177,9 +182,21 @@ module.exports = {
 
 			});
 
+			// ================= CLEAN =================
+			setTimeout(() => {
+
+				[videoPath, framePath, output].forEach(file => {
+					if (fs.existsSync(file)) fs.unlinkSync(file);
+				});
+
+			}, 10000);
+
 		} catch (err) {
 			console.log("WELCOME ERROR:", err);
-			api.sendMessage("❌ Welcome error: " + err.message, event.threadID);
+			api.sendMessage(
+				"❌ Welcome system error: " + err.message,
+				event.threadID
+			);
 		}
 	}
 };
